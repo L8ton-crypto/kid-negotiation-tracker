@@ -7,17 +7,25 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     await ensureDb();
-    const kids = (await sql`SELECT id, name, emoji, created_at FROM kn_kids ORDER BY created_at ASC`) as unknown as KnKid[];
-    const deals = (await sql`
+    const kidsRaw = await sql`SELECT id, name, emoji, created_at FROM kn_kids`;
+    const dealsRaw = await sql`
       SELECT id, kid_id, title, kid_promises, parent_promises,
              follow_up_date::text AS follow_up_date,
              status, notes, created_at, resolved_at
       FROM kn_deals
-      ORDER BY
-        CASE status WHEN 'open' THEN 0 ELSE 1 END,
-        follow_up_date NULLS LAST,
-        created_at DESC
-    `) as unknown as KnDeal[];
+    `;
+    const kids = (kidsRaw as unknown as KnKid[]).slice().sort((a, b) =>
+      (a.created_at || "").localeCompare(b.created_at || "")
+    );
+    const deals = (dealsRaw as unknown as KnDeal[]).slice().sort((a, b) => {
+      const ao = a.status === "open" ? 0 : 1;
+      const bo = b.status === "open" ? 0 : 1;
+      if (ao !== bo) return ao - bo;
+      const ad = a.follow_up_date ?? "9999-99-99";
+      const bd = b.follow_up_date ?? "9999-99-99";
+      if (ad !== bd) return ad.localeCompare(bd);
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    });
     return NextResponse.json({ kids, deals });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "unknown error";
