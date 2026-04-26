@@ -33,11 +33,8 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     await ensureDb();
     const id = Number(params.id);
     if (!Number.isInteger(id)) return NextResponse.json({ error: "bad id" }, { status: 400 });
-    const allIds = await sql`SELECT id FROM kn_kids ORDER BY id`;
-    const schema = await sql`SELECT current_schema(), current_database()`;
-    const probe = await sql`SELECT id FROM kn_kids WHERE id=${id}`;
-    const result = await sql`DELETE FROM kn_kids WHERE id=${id} RETURNING id`;
-    return NextResponse.json({ ok: true, _debug: { id, idType: typeof id, allIds, schema, probe, result } });
+    await sql`DELETE FROM kn_kids WHERE id=${id}`;
+    return NextResponse.json({ ok: true });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
