@@ -3,6 +3,8 @@ import { ensureDb, sql, KnKid, KnDeal } from "@/lib/db";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
 
 export async function GET() {
   try {
@@ -28,7 +30,13 @@ export async function GET() {
       if (ad !== bd) return ad.localeCompare(bd);
       return String(b.created_at).localeCompare(String(a.created_at));
     });
-    return NextResponse.json({ kids, deals });
+    return new NextResponse(JSON.stringify({ kids, deals }), {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json",
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+      },
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "unknown error";
     return NextResponse.json({ error: msg }, { status: 500 });
